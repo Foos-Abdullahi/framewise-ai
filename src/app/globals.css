@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: #07110e;
@@ -10,6 +14,49 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --card: #0d1915;
+  --card-foreground: #f5fff9;
+  --popover: #0d1915;
+  --popover-foreground: #f5fff9;
+  --primary: #6ee7b7;
+  --primary-foreground: #07110e;
+  --secondary: #17241f;
+  --secondary-foreground: #f5fff9;
+  --muted: #17241f;
+  --muted-foreground: #9ca9a4;
+  --accent: #1d3028;
+  --accent-foreground: #f5fff9;
+  --destructive: #ff6b6b;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #6ee7b7;
+  --radius: 0.625rem;
 }
 
 * {
@@ -30,4 +77,10 @@ body {
 button,
 input {
   font: inherit;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 }
