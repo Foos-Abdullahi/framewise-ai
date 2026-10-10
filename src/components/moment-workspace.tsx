@@ -12,11 +12,12 @@ type Props = {
   question: string;
   loading: boolean;
   elapsed: number;
+  uploadProgress: number | null;
   analysis: VideoAnalysis | null;
   onCancel: () => void;
 };
 
-export function MomentWorkspace({ youtubeId, localUrl, sourceName, question, loading, elapsed, analysis, onCancel }: Props) {
+export function MomentWorkspace({ youtubeId, localUrl, sourceName, question, loading, elapsed, uploadProgress, analysis, onCancel }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -45,7 +46,7 @@ export function MomentWorkspace({ youtubeId, localUrl, sourceName, question, loa
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-7">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[.16em] text-muted-foreground"><ScanLine className="size-4 text-orange-500" /> Moment finder <span className="hidden truncate font-normal normal-case tracking-normal sm:inline">/ {sourceName}</span></div>
-        <h2 className="mt-2 line-clamp-2 text-lg font-semibold tracking-tight sm:text-xl">{loading ? "Finding the moment" : analysis ? analysis.title : "Your video, ready to explore"}</h2>
+        <h2 className="mt-2 line-clamp-2 text-lg font-semibold tracking-tight sm:text-xl">{loading ? (uploadProgress !== null ? "Uploading your video" : "Finding the moment") : analysis ? analysis.title : "Your video, ready to explore"}</h2>
         {question && <p className="mt-1 line-clamp-1 text-sm text-muted-foreground" title={question}>{question}</p>}
       </div>
       {loading ? <button type="button" onClick={onCancel} className="flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"><Square className="size-3" /> Stop scan</button> : <span className="flex items-center gap-2 rounded-full bg-secondary px-3 py-2 text-xs font-medium">{analysis ? <Check className="size-3 text-primary" /> : <Play className="size-3" />}{analysis ? "Scan complete" : "Preview"}</span>}
@@ -62,9 +63,9 @@ export function MomentWorkspace({ youtubeId, localUrl, sourceName, question, loa
     </div>
 
     <div className="border-t border-border px-5 py-6 text-center sm:px-7">
-      <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-orange-500">{loading ? <><LoaderCircle className="size-3 animate-spin" /> Analyzing video</> : active ? "Selected moment" : analysis ? `${moments.length} ${analysis.searchResult ? "matching" : "key"} moments` : youtubeId ? "Preview starts at" : "Video position"}</p>
+      <p className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-orange-500">{loading ? <><LoaderCircle className="size-3 animate-spin" /> {uploadProgress !== null ? "Uploading video" : "Analyzing video"}</> : active ? "Selected moment" : analysis ? `${moments.length} ${analysis.searchResult ? "matching" : "key"} moments` : youtubeId ? "Preview starts at" : "Video position"}</p>
       <div className="mt-2 font-mono text-[clamp(2.5rem,9vw,5.5rem)] font-bold leading-none tracking-[-.08em] tabular-nums">{loading ? formatVideoTime(elapsed) : formatVideoTime(selectedTime)}</div>
-      <p role="status" className="mx-auto mt-3 max-w-xl text-xs leading-5 text-muted-foreground">{loading ? "Elapsed scan time · video timestamps appear when the analysis finishes." : active ? active.description : analysis ? moments.length ? "Choose a moment below to play it inside this video." : "No matching moments were identified. Open the report for details." : "Preview the footage, then describe the moment you want to find."}</p>
+      <p role="status" className="mx-auto mt-3 max-w-xl text-xs leading-5 text-muted-foreground">{loading ? (uploadProgress !== null ? `Upload ${uploadProgress}% complete · private video storage` : "Elapsed scan time · video timestamps appear when the analysis finishes.") : active ? active.description : analysis ? moments.length ? "Choose a moment below to play it inside this video." : "No matching moments were identified. Open the report for details." : "Preview the footage, then describe the moment you want to find."}</p>
       {loading && <div role="progressbar" aria-label="Video analysis in progress" className="moment-progress mx-auto mt-5 h-1.5 max-w-xl overflow-hidden rounded-full bg-orange-500/15"><span className="block h-full w-1/3 rounded-full bg-orange-500" /></div>}
     </div>
 
@@ -90,4 +91,5 @@ export function MomentWorkspace({ youtubeId, localUrl, sourceName, question, loa
     </div>}
   </section>;
 }
+
 

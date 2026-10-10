@@ -1,5 +1,6 @@
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Link2, LoaderCircle, Search, Upload, Video } from "lucide-react";
 import { analysisSchema, MAX_VIDEO_BYTES, supportedVideoTypes, youtubeUrlSchema, searchQuestionSchema } from "@/lib/validation";
@@ -20,6 +21,7 @@ export function VideoAnalyzer() {
   const localUrlRef = useRef("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [analysis, setAnalysis] = useState<VideoAnalysis | null>(null);
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -71,14 +73,31 @@ export function VideoAnalyzer() {
     setElapsedSeconds(0);
     const controller = new AbortController();
     abortRef.current = controller;
+    setUploadProgress(null);
     setLoading(true);
     try {
       const body = new FormData();
       if (file) body.append("file", file);
       body.append("question", parsedQuestion.data);
+      let blobPathname: string | null = null;
+      if (mode === "upload" && file) {
+        const configResponse = await fetch("/api/upload", { signal: controller.signal });
+        if (!configResponse.ok) throw new Error("Could not prepare video upload. Please retry.");
+        const config = await configResponse.json();
+        if (config.enabled) {
+          setUploadProgress(0);
+          const extension = file.type === "video/quicktime" ? "mov" : file.type === "video/webm" ? "webm" : "mp4";
+          const blob = await upload(`${config.prefix}/${crypto.randomUUID()}.${extension}`, file, {
+            access: "private", handleUploadUrl: "/api/upload", contentType: file.type,
+            abortSignal: controller.signal, onUploadProgress: ({ percentage }) => setUploadProgress(Math.round(percentage)),
+          });
+          blobPathname = blob.pathname;
+          setUploadProgress(null);
+        } else if (config.hosted) throw new Error("Video uploads are not configured. Connect a private Vercel Blob store to this project.");
+      }
       const response = await fetch("/api/analyze", {
         method: "POST",
-        ...(mode === "upload" ? { body } : { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: url.trim(), question: parsedQuestion.data }) }),
+        ...(mode === "upload" && !blobPathname ? { body } : { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(blobPathname ? { blobPathname } : { url: url.trim() }), question: parsedQuestion.data }) }),
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(290_000)]),
       });
       const data = await response.json().catch(() => null);
@@ -93,6 +112,7 @@ export function VideoAnalyzer() {
     } finally {
       abortRef.current = null;
       busyRef.current = false;
+      setUploadProgress(null);
       setLoading(false);
     }
   }
@@ -116,7 +136,7 @@ export function VideoAnalyzer() {
           </button> : <div><label htmlFor="youtube-url" className="sr-only">Public YouTube video URL</label><input id="youtube-url" type="url" value={url} disabled={loading} onChange={(event) => { setUrl(event.target.value); setError(""); setAnalysis(null); }} placeholder="Paste a public YouTube video URL…" className="h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-primary" /></div>}
         </div>
 
-        {hasVideo && <MomentWorkspace key={`${mode}-${youtubeId ?? localUrl}-${analysis?.id ?? "preview"}`} youtubeId={youtubeId} localUrl={localUrl} sourceName={mode === "upload" ? file?.name ?? "Uploaded video" : "YouTube video"} question={loading || analysis ? submittedQuestion : ""} loading={loading} elapsed={elapsedSeconds} analysis={analysis} onCancel={() => abortRef.current?.abort()} />}
+        {hasVideo && <MomentWorkspace key={`${mode}-${youtubeId ?? localUrl}-${analysis?.id ?? "preview"}`} youtubeId={youtubeId} localUrl={localUrl} sourceName={mode === "upload" ? file?.name ?? "Uploaded video" : "YouTube video"} question={loading || analysis ? submittedQuestion : ""} loading={loading} elapsed={elapsedSeconds} uploadProgress={uploadProgress} analysis={analysis} onCancel={() => abortRef.current?.abort()} />}
 
         <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
           <label htmlFor="video-question" className="flex items-center gap-2 text-sm font-semibold"><Search className="size-4 text-orange-500" />What do you want to find in this video?</label>
@@ -131,4 +151,5 @@ export function VideoAnalyzer() {
     </div>
   );
 }
+
 

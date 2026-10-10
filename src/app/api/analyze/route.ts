@@ -1,3 +1,5 @@
+import { get, del } from "@vercel/blob";
+import { ownsUpload } from "@/lib/upload-session";
 import { z } from "zod";
 import { analysisSchema, MAX_VIDEO_BYTES, supportedVideoTypes, youtubeUrlSchema, searchQuestionSchema } from "@/lib/validation";
 
@@ -7,6 +9,8 @@ export async function POST(request: Request) {
   let videoUrl: string;
   let youtube = false;
   let question = "";
+  let blobPathname: string | null = null;
+  async function cleanupUpload() { if (blobPathname) await del(blobPathname).catch(() => {}); }
   try {
     if (request.headers.get("content-type")?.includes("multipart/form-data")) {
       const data = await request.formData();
@@ -24,6 +28,16 @@ export async function POST(request: Request) {
       const parsedQuestion = searchQuestionSchema.safeParse(data?.question ?? "");
       if (!parsedQuestion.success) return Response.json({ error: "Keep your search under 1,000 characters." }, { status: 400 });
       question = parsedQuestion.data;
+      if (data?.blobPathname !== undefined) {
+        if (!ownsUpload(request, data.blobPathname)) return Response.json({ error: "Invalid or expired upload session. Upload the video again." }, { status: 403 });
+        blobPathname = data.blobPathname;
+        const blob = await get(data.blobPathname, { access: "private", useCache: false, abortSignal: request.signal });
+        if (!blob || blob.statusCode !== 200 || !blob.blob.size || blob.blob.size > MAX_VIDEO_BYTES || !supportedVideoTypes.some((type) => type === blob.blob.contentType)) throw new Error("Invalid video upload");
+        const bytes = await new Response(blob.stream).arrayBuffer();
+        if (bytes.byteLength > MAX_VIDEO_BYTES) throw new Error("Upload too large");
+        const mimeType = blob.blob.contentType === "video/quicktime" ? "video/mov" : blob.blob.contentType;
+        videoUrl = `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+      } else {
       const parsed = youtubeUrlSchema.safeParse(data?.url);
       if (!parsed.success) return Response.json({ error: "Enter a valid YouTube video URL." }, { status: 400 });
       const url = new URL(parsed.data);
@@ -31,13 +45,15 @@ export async function POST(request: Request) {
         url.pathname === "/watch" ? url.searchParams.get("v") : url.pathname.split("/")[2];
       videoUrl = `https://www.youtube.com/watch?v=${id}`;
       youtube = true;
+      }
     }
   } catch {
+    await cleanupUpload();
     return Response.json({ error: "Invalid analysis request. Choose a video or enter a YouTube URL." }, { status: 400 });
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey || apiKey === "your_openrouter_key") return Response.json({ error: "Video analysis is not configured. Add your actual OPENROUTER_API_KEY to .env or .env.local and restart the server." }, { status: 503 });
+  if (!apiKey || apiKey === "your_openrouter_key") { await cleanupUpload(); return Response.json({ error: "Video analysis is not configured. Add your actual OPENROUTER_API_KEY to .env or .env.local and restart the server." }, { status: 503 }); }
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -74,7 +90,11 @@ export async function POST(request: Request) {
   } catch (error) {
     const timeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     return Response.json({ error: timeout ? "The video provider took too long to respond. Please retry, or upload a short clip of the relevant incident." : "Could not complete video analysis. Please retry with a shorter upload or public YouTube video." }, { status: timeout ? 504 : 502 });
+  } finally {
+    await cleanupUpload();
   }
 }
+
+
 
 

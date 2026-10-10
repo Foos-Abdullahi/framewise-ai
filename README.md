@@ -40,3 +40,16 @@ Uploaded MP4, MOV, and WebM videos (up to 20 MB) and public YouTube video links 
 
 
 
+
+## Vercel deployment
+
+Connect the GitHub repository `Foos-Abdullahi/framewise-ai` and select the `dev` branch for production, which contains the application.
+Use Next.js framework detection, the default build command (`npm run build`), and Node.js 22 or newer.
+
+Configure `OPENROUTER_API_KEY` as a secret and `OPENROUTER_MODEL=google/gemini-3.8-flash` for Production and Preview.
+Create a **private** Vercel Blob store connected to this project; include Production, Preview, and Development if you need local Blob testing.
+The connection provides `BLOB_READ_WRITE_TOKEN`. Keep this token on the server, without a `NEXT_PUBLIC_` prefix.
+
+Browser uploads go directly to private Blob storage and are limited to 20 MB. The analyzer reads only the current browser's signed upload session and deletes the temporary video after analysis (including failed analysis).
+Local development continues to accept direct file uploads when Blob is not configured. Hosted uploads require Blob to avoid Vercel's function request-size limit.
+The analysis route allows up to 300 seconds; Fluid Compute should remain enabled.
