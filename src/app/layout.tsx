@@ -19,8 +19,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html suppressHydrationWarning lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head><script dangerouslySetInnerHTML={{ __html: `try { const theme = localStorage.getItem("framewise-theme"); document.documentElement.dataset.theme = theme === "light" || theme === "dark" ? theme : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; } catch {}` }} /></head>
+      {/* Browser extensions can add body attributes before React hydrates. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
+

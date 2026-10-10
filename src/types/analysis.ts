@@ -11,4 +11,9 @@ export type VideoAnalysis = {
   timeline: TimelineEvent[];
   entities: string[];
   insights: string[];
+  searchResult: {
+    answer: string;
+    matches: { timestamp: string; seconds: number; description: string }[];
+  } | null;
 };
+

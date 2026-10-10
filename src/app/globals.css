@@ -84,3 +84,35 @@ input {
     @apply border-border outline-ring/50;
   }
 }
+
+:root { color-scheme: dark; }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f3faf6; --foreground: #132b20;
+  --card: #ffffff; --card-foreground: #132b20;
+  --popover: #ffffff; --popover-foreground: #132b20;
+  --primary: #047857; --primary-foreground: #ffffff;
+  --secondary: #e4f0e9; --secondary-foreground: #132b20;
+  --muted: #e4f0e9; --muted-foreground: #52685b;
+  --accent: #d3eddf; --accent-foreground: #132b20;
+  --border: rgb(19 43 32 / 16%); --input: rgb(19 43 32 / 20%);
+  --ring: #047857;
+}
+.theme-moon { display: none; }
+:root[data-theme="light"] .theme-sun { display: none; }
+:root[data-theme="light"] .theme-moon { display: inline; }
+
+.moment-stage {
+  background-color: var(--background);
+  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.moment-film { background: #a65318; border-block: 12px solid #d68a40; }
+.moment-film::before, .moment-film::after { content: ""; position: absolute; left: 0; right: 0; height: 6px; background: repeating-linear-gradient(90deg, transparent 0 12px, #fff6e8 12px 22px, transparent 22px 32px); }
+.moment-film::before { top: -9px; }
+.moment-film::after { bottom: -9px; }
+.moment-film-active::before, .moment-film-active::after { animation: film-travel 2s linear infinite; }
+.moment-progress span { animation: scan-wait 1.8s ease-in-out infinite alternate; }
+@keyframes film-travel { to { background-position-x: 32px; } }
+@keyframes scan-wait { from { transform: translateX(0); } to { transform: translateX(200%); } }
+@media (prefers-reduced-motion: reduce) { .moment-film-active::before, .moment-film-active::after, .moment-progress span { animation: none; } }
